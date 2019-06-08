@@ -20,8 +20,7 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -34,6 +33,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "MainActivity";
 
     long mNow;
     Date mDate;
@@ -51,12 +51,18 @@ public class MainActivity extends AppCompatActivity {
 
     /*Firebase Database*/
     FirebaseDatabase database= FirebaseDatabase.getInstance();
-    DatabaseReference myRef= database.getReference("door_status");
+    DatabaseReference doorStatus= database.getReference("door_status");
+    DatabaseReference autoMode= database.getReference("auto_mode");
+
+    String door_str="";//창문 개폐여부
+    String dimg_name="";//창문 이미지
+    String wimg_name="@drawable/";//날씨 이미지
 
     @Override
     protected void onCreate (Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        final String packageName= this.getPackageName();
 
         time = (TextView) findViewById(R.id.time);
         time.setText(getTime());
@@ -66,7 +72,6 @@ public class MainActivity extends AppCompatActivity {
         } else {
             checkRunTimePermission();
         }
-
         //위치
         location = (TextView) findViewById(R.id.location);
         String[] location_arr = getLocation().split(" ");
@@ -93,13 +98,86 @@ public class MainActivity extends AppCompatActivity {
         TextView weather = (TextView) findViewById(R.id.weather);//날씨
         TextView temp = (TextView) findViewById(R.id.temp); //온도
         TextView wetness = (TextView) findViewById(R.id.wetness); //습도
+        ImageView weather_img= (ImageView)findViewById(R.id.weather_img);//날씨 이미지
 
-        Switch remote_mode = (Switch) findViewById(R.id.remote_mode);//원격 제어 스위치
+        final Switch remote_mode = (Switch) findViewById(R.id.remote_mode);//원격 제어 스위치
+        final Switch auto_mode = (Switch) findViewById(R.id.auto_mode);//오토모드 스위치
+        final TextView door_status= (TextView)findViewById(R.id.door_status);//창문 상태 메세지
+        final ImageView door_icon= (ImageView)findViewById(R.id.door_icon);//창문 상태 이미지
+
+        //원격제어
+        remote_mode.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){//on일때
+                    doorStatus.setValue("open"); //db값 변경(close->open)
+                }else{//off일때
+                    doorStatus.setValue("close"); //db값 변경(open->close)
+                }
+            }
+
+        });
+        //Auto 모드
+        auto_mode.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){//on일때
+                    autoMode.setValue("active"); //db값 변경(inactive->active)
+                }else{//off일때
+                    autoMode.setValue("inactive"); //db값 변경(active->inactive)
+                }
+            }
+        });
+        //read from the database(문상태)
+        doorStatus.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
+                String value= dataSnapshot.getValue(String.class); //door status
+                Log.e(TAG, value);
+                if(value.equals("open")) {//열려 있을 때
+                    dimg_name="@drawable/opened_window";//창문 이미지
+                    door_str="창문이 열려 있습니다";//창문 상태 메세지
+                    remote_mode.setChecked(true);
+
+                }else{
+                    dimg_name="@drawable/closed_window";
+                    door_str="창문이 닫혀 있습니다";
+                    remote_mode.setChecked(false);
+                }
+                door_status.setText(door_str);//창문 상태 메세지 변경
+                int door_img = getResources().getIdentifier(dimg_name, "drawable", packageName);
+                door_icon.setImageResource(door_img);//창문 상태 이미지 변경
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                //Failed to read value
+                Log.w(TAG, "Failed to read value.", databaseError.toException());
+            }
+        });
+        //read from the database(Auto모드)
+        autoMode.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                String value= dataSnapshot.getValue(String.class);
+                Log.e(TAG, value);
+                if(value.equals("active")) {//활성화
+                    auto_mode.setChecked(true);
+                }else{
+                    auto_mode.setChecked(false);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                //Failed to read value
+                Log.w(TAG, "Failed to read value.", databaseError.toException());
+            }
+        });
 
         WeatherConnection weatherConnection = new WeatherConnection();
-
         AsyncTask<String, String, String> result = weatherConnection.execute("", "");
-
         System.out.println("RESULT");
 
         try {
@@ -112,6 +190,20 @@ public class MainActivity extends AppCompatActivity {
             //날씨, 온도, 습도
             temp.setText(weather_arr[0] + "℃");
             weather.setText(weather_arr[1]);
+
+            if(weather_arr[1].equals("맑음")) {
+                wimg_name+="sun";
+            }else if(weather_arr[1].equals("흐림")){
+                wimg_name+="cloud";
+            }else if(weather_arr[1].equals("흐리고 비")){
+                wimg_name+="rain";
+            }else if(weather_arr[1].equals("구름많음")){
+                wimg_name+="lot_cloud";
+            }else{
+                Toast.makeText(MainActivity.this,"현재 날씨는 "+weather_arr[1],Toast.LENGTH_LONG).show();
+            }
+            int wimg = getResources().getIdentifier(wimg_name, "drawable", packageName);
+            weather_img.setImageResource(wimg);
 
             //미세먼지
             String dstatus = dust_arr[1].split("\\(")[0];
@@ -127,13 +219,12 @@ public class MainActivity extends AppCompatActivity {
             } else if (dstatus.equals("매우 나쁨")) {
                 img_name += "vbad_face";
             }
-            int dimg = getResources().getIdentifier(img_name, "drawable", this.getPackageName());
+            int dimg = getResources().getIdentifier(img_name, "drawable", packageName);
             dust_img.setImageResource(dimg);
         } catch (Exception e) {
 
         }
 
-        //원격제어
     }
     /*현재 시간 가져오기*/
     private String getTime(){

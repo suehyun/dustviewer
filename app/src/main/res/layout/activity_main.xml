@@ -146,7 +146,8 @@
                 android:layout_columnWeight="1"
                 android:layout_gravity="center_horizontal"
                 android:padding="10dp"
-                android:src="@drawable/sunny" />
+                android:src="@drawable/sun"
+                android:id="@+id/weather_img"/>
 
         <ImageView
                 android:layout_width="80dp"
@@ -224,7 +225,7 @@
                 android:layout_alignTop="@+id/door_icon"
                 android:layout_marginLeft="20dp"
                 android:layout_toRightOf="@+id/door_icon"
-                android:text="창문이 열려 있습니다"
+                android:text="창문 상태 메세지"
                 android:textSize="20dp"
                 android:id="@+id/door_status"/>
 
@@ -243,7 +244,8 @@
                 android:text="Auto모드"
                 android:layout_alignRight="@+id/door_status"
                 android:layout_below="@+id/remote_mode"
-                android:switchPadding="20dp"/>
+                android:switchPadding="20dp"
+                android:id="@+id/auto_mode"/>
         <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

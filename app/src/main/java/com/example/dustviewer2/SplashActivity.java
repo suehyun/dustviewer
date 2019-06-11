@@ -2,8 +2,10 @@ package com.example.dustviewer2;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v4.content.res.ResourcesCompat;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -25,10 +27,15 @@ public class SplashActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.splash);
 
+        //폰트설정
+        splash_txt= (TextView)findViewById(R.id.splash_txt);
+        Typeface ubuntu= ResourcesCompat.getFont(this, R.font.ubuntu_medium);
+        splash_txt.setTypeface(ubuntu);
+
          /*gif 삽입*/
         ImageView splashIcon = (ImageView) findViewById(R.id.splash_icon);
         GlideDrawableImageViewTarget mvCon = new GlideDrawableImageViewTarget(splashIcon);
-        Glide.with(this).load(R.raw.mv_con_small).diskCacheStrategy(DiskCacheStrategy.SOURCE).into(mvCon);
+        Glide.with(this).load(R.raw.mv_con_fin2).diskCacheStrategy(DiskCacheStrategy.SOURCE).into(mvCon);
 
         Handler handler = new Handler();
         handler.postDelayed(new Runnable() {

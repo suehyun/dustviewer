@@ -8,15 +8,6 @@
               android:id="@+id/main"
               android:background="#ffffff"
               tools:context="com.example.dustviewer2.MainActivity">
-
-    <ImageButton
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:background="@drawable/settings"
-            android:layout_gravity="right"
-            android:layout_marginTop="5dp"
-            android:layout_marginBottom="5dp"
-            android:layout_marginRight="10dp"/>
     <!--경계선-->
     <!--    <View
             android:layout_width="match_parent"
@@ -24,6 +15,17 @@
             android:layout_centerInParent="true"
             android:layout_marginBottom="10dp"
             android:background="#000000"/>-->
+    <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="DustViewer"
+            android:textColor="#000000"
+            android:textSize="25dp"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:layout_marginBottom="20dp"
+            android:id="@+id/logo"/>
+
     <!--날짜,시간,위치 정보-->
     <TextView
             android:layout_width="match_parent"
@@ -57,7 +59,7 @@
                     android:layout_gravity="center"
                     android:gravity="center"
                     android:text="미세먼지"
-                    android:textSize="15dp" />
+                    android:textSize="13dp" />
 
             <ImageView
                     android:id="@+id/dust_img"
@@ -82,7 +84,8 @@
                     android:layout_gravity="center"
                     android:gravity="center"
                     android:text="미세먼지 상태"
-                    android:textSize="20dp" />
+                    android:textSize="20dp"
+                    android:textStyle="bold"/>
         </LinearLayout>
         <!--초미세먼지 상태-->
         <LinearLayout
@@ -96,7 +99,7 @@
                     android:layout_gravity="center"
                     android:gravity="center"
                     android:text="초미세먼지"
-                    android:textSize="15dp" />
+                    android:textSize="13dp" />
 
             <ImageView
                     android:id="@+id/vdust_img"
@@ -121,16 +124,18 @@
                     android:layout_gravity="center"
                     android:gravity="center"
                     android:text="초미세먼지 상태 "
-                    android:textSize="20dp" />
+                    android:textSize="20dp"
+                    android:textStyle="bold"/>
         </LinearLayout>
     </LinearLayout>
     <!--경계선-->
     <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
+            android:layout_width="350dp"
+            android:layout_height="10dp"
             android:layout_centerInParent="true"
-            android:layout_marginTop="10dp"
-            android:background="#000000"/>
+            android:layout_gravity="center"
+            android:layout_marginTop="20dp"
+            android:background="#f2f4f7"/>
 
     <!--날씨,온도,습도-->
     <GridLayout
@@ -171,21 +176,24 @@
             android:layout_height="wrap_content"
             android:columnCount="3"
             android:orientation="vertical"
-            android:rowCount="1">
+            android:rowCount="1"
+            android:layout_gravity="center">
         <TextView
                 android:layout_width="80dp"
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
-                android:gravity="center"
                 android:text="날씨"
                 android:textSize="15dp"
-                android:id="@+id/weather"/>
+                android:layout_gravity="center_horizontal"
+                android:id="@+id/weather"
+                android:gravity="center"/>
         <TextView
                 android:layout_width="80dp"
                 android:layout_columnWeight="1"
                 android:gravity="center"
                 android:text="기온"
                 android:textSize="15dp"
+                android:layout_gravity="center_horizontal"
                 android:id="@+id/temp"/>
         <TextView
                 android:layout_width="80dp"
@@ -193,6 +201,7 @@
                 android:gravity="center"
                 android:text="습도"
                 android:textSize="15dp"
+                android:layout_gravity="center_horizontal"
                 android:id="@+id/wetness"/>
 
     </GridLayout>
@@ -200,17 +209,26 @@
     <!--경계선-->
     <View
             android:layout_width="match_parent"
-            android:layout_height="1dp"
+            android:layout_height="10dp"
             android:layout_centerInParent="true"
+            android:layout_gravity="center"
             android:layout_marginTop="10dp"
-            android:background="#000000"/>
+            android:background="#f2f4f7"/>
 
     <!--창문 제어-->
 
     <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent">
-
+        <ImageButton
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:background="@drawable/settings"
+                android:layout_alignParentRight="true"
+                android:layout_marginTop="5dp"
+                android:layout_marginBottom="5dp"
+                android:layout_marginRight="10dp"
+                android:id="@+id/setting"/>
         <ImageView
                 android:id="@+id/door_icon"
                 android:layout_width="100dp"
@@ -227,7 +245,8 @@
                 android:layout_toRightOf="@+id/door_icon"
                 android:text="창문 상태 메세지"
                 android:textSize="20dp"
-                android:id="@+id/door_status"/>
+                android:id="@+id/door_status"
+                android:textColor="#000000"/>
 
         <Switch
                 android:layout_width="wrap_content"

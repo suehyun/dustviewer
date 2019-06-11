@@ -1,10 +1,13 @@
 package com.example.dustviewer2;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.location.Address;
 import android.location.Geocoder;
@@ -14,6 +17,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -53,16 +57,25 @@ public class MainActivity extends AppCompatActivity {
     FirebaseDatabase database= FirebaseDatabase.getInstance();
     DatabaseReference doorStatus= database.getReference("door_status");
     DatabaseReference autoMode= database.getReference("auto_mode");
+    DatabaseReference dustIn = database.getReference("dust_in");
+    DatabaseReference dustSet = database.getReference("dust_set");
 
     String door_str="";//창문 개폐여부
     String dimg_name="";//창문 이미지
     String wimg_name="@drawable/";//날씨 이미지
 
+    int dust_in_val;
+    int dust_set_val;
+
+    //SettingActivity에 변수를 넘기기 위함
+    public static Context context;
+    public int dustNum;
     @Override
     protected void onCreate (Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         final String packageName= this.getPackageName();
+        context= this;
 
         time = (TextView) findViewById(R.id.time);
         time.setText(getTime());
@@ -80,20 +93,28 @@ public class MainActivity extends AppCompatActivity {
             location.setText(location_arr[1] + " " + location_arr[2] + " " + location_arr[3]);
 
             //위치에 따라 지역코드 설정//야매
-            String loc = location_arr[4];
+            String loc= location_arr[4];
             Log.e("지역", loc);
             if (loc.equals("죽전1동")) location_num = "02465540";
             else if (loc.equals("보정동")) location_num = "02463118";
             else if (loc.equals("죽전2동")) location_num = "02465550";
             else if (loc.equals("죽전동")) location_num = "02465102";
-            else Toast.makeText(MainActivity.this, "지역 불분명!", Toast.LENGTH_LONG).show();
+            else {
+                Toast.makeText(MainActivity.this, "지역 불분명!", Toast.LENGTH_LONG).show();
+                location_num = "02465102";//죽전동 지역코드로 임시설정
+            }
         } else {
             location.setText(getLocation());
         }
+        ImageView setting= (ImageView)findViewById(R.id.setting);//설정 아이콘
+        TextView logo= (TextView)findViewById(R.id.logo);//로고
 
         TextView dust_num = (TextView) findViewById(R.id.dust_num);//미세먼지 수치
         TextView dust_status = (TextView) findViewById(R.id.dust_status);//미세먼지 상태
         ImageView dust_img = (ImageView) findViewById(R.id.dust_img);//미세먼지 상태 이미지
+        TextView vdust_num = (TextView) findViewById(R.id.vdust_num);//초미세먼지 수치
+        TextView vdust_status = (TextView) findViewById(R.id.vdust_status);//초미세먼지 상태
+        ImageView vdust_img = (ImageView) findViewById(R.id.vdust_img);//미세먼지 상태 이미지
 
         TextView weather = (TextView) findViewById(R.id.weather);//날씨
         TextView temp = (TextView) findViewById(R.id.temp); //온도
@@ -105,26 +126,40 @@ public class MainActivity extends AppCompatActivity {
         final TextView door_status= (TextView)findViewById(R.id.door_status);//창문 상태 메세지
         final ImageView door_icon= (ImageView)findViewById(R.id.door_icon);//창문 상태 이미지
 
+        Typeface ubuntu= ResourcesCompat.getFont(this, R.font.ubuntu_bold);
+        logo.setTypeface(ubuntu);//로고 폰트 설정
+
+        //설정
+        setting.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(v.getContext(), SettingActivity.class);//this 대신에 v.getContext로 오류(intent cannot resolve constructor)해결
+                startActivity(intent);
+            }
+        });
+
         //원격제어
         remote_mode.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(isChecked){//on일때
-                    doorStatus.setValue("open"); //db값 변경(close->open)
-                }else{//off일때
-                    doorStatus.setValue("close"); //db값 변경(open->close)
-                }
+                    if (isChecked) {//on일때
+                        doorStatus.setValue("open"); //db값 변경(close->open)
+                    } else {//off일때
+                        doorStatus.setValue("close"); //db값 변경(open->close)
+                    }
             }
-
         });
+
         //Auto 모드
         auto_mode.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if(isChecked){//on일때
                     autoMode.setValue("active"); //db값 변경(inactive->active)
+                    remote_mode.setEnabled(false);//원격제어 hold
                 }else{//off일때
                     autoMode.setValue("inactive"); //db값 변경(active->inactive)
+                    remote_mode.setEnabled(true);
                 }
             }
         });
@@ -164,6 +199,11 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, value);
                 if(value.equals("active")) {//활성화
                     auto_mode.setChecked(true);
+                    if(dust_in_val>=dust_set_val){
+                        doorStatus.setValue("open");
+                    }else{
+                        doorStatus.setValue("close");
+                    }
                 }else{
                     auto_mode.setChecked(false);
                 }
@@ -179,6 +219,9 @@ public class MainActivity extends AppCompatActivity {
         WeatherConnection weatherConnection = new WeatherConnection();
         AsyncTask<String, String, String> result = weatherConnection.execute("", "");
         System.out.println("RESULT");
+
+        OtherConnection otherConnection = new OtherConnection();
+        AsyncTask<String, String, String> result2= otherConnection.execute("", "");
 
         try {
             String msg = result.get();
@@ -197,8 +240,10 @@ public class MainActivity extends AppCompatActivity {
                 wimg_name+="cloud";
             }else if(weather_arr[1].equals("흐리고 비")){
                 wimg_name+="rain";
-            }else if(weather_arr[1].equals("구름많음")){
-                wimg_name+="lot_cloud";
+            }else if(weather_arr[1].equals("구름많음")) {
+                wimg_name += "lot_cloud";
+            }else if(weather_arr[1].equals("비")){
+                wimg_name += "rain";
             }else{
                 Toast.makeText(MainActivity.this,"현재 날씨는 "+weather_arr[1],Toast.LENGTH_LONG).show();
             }
@@ -210,18 +255,57 @@ public class MainActivity extends AppCompatActivity {
             String img_name = "@drawable/";
             dust_num.setText(dust_arr[0].split(" ")[1]);
             dust_status.setText(dstatus);
+            dustNum= Integer.parseInt(dust_arr[0].split(" ")[1]);
             if (dstatus.equals("좋음")) {
                 img_name += "vgood_face";
+                dust_status.setTextColor(Color.parseColor("#32a1ff"));
             } else if (dstatus.equals("보통")) {
                 img_name += "good_face";
+                dust_status.setTextColor(Color.parseColor("#00c73c"));
             } else if (dstatus.equals("나쁨")) {
                 img_name += "bad_face";
+                dust_status.setTextColor(Color.parseColor("#fd9b5a"));
             } else if (dstatus.equals("매우 나쁨")) {
                 img_name += "vbad_face";
+                dust_status.setTextColor(Color.parseColor("#ff5959"));
             }
             int dimg = getResources().getIdentifier(img_name, "drawable", packageName);
             dust_img.setImageResource(dimg);
         } catch (Exception e) {
+
+        }
+
+        //초미세먼지, 습도
+        try {
+            String msg2 = result2.get();
+            System.out.println(msg2);
+            String[] data2_arr= msg2.toString().split("data");
+            String[] vdust_arr= data2_arr[0].split(" ");
+            String[] vdust= vdust_arr[3].split("㎍/㎥");//초미세먼지
+
+
+            vdust_num.setText(vdust[0]);
+            vdust_status.setText(vdust[1]);
+            wetness.setText(data2_arr[1]);
+
+            String img_name="@drawable/";
+            String vdstatus= vdust[1];
+            if (vdstatus.equals("좋음")) {
+                img_name += "vgood_face";
+                vdust_status.setTextColor(Color.parseColor("#32a1ff"));
+            } else if (vdstatus.equals("보통")) {
+                img_name += "good_face";
+                vdust_status.setTextColor(Color.parseColor("#00c73c"));
+            } else if (vdstatus.equals("나쁨")) {
+                img_name += "bad_face";
+                vdust_status.setTextColor(Color.parseColor("#fd9b5a"));
+            } else if (vdstatus.equals("매우 나쁨")) {
+                img_name += "vbad_face";
+                vdust_status.setTextColor(Color.parseColor("#ff5959"));
+            }
+            int dimg = getResources().getIdentifier(img_name, "drawable", packageName);
+            vdust_img.setImageResource(dimg);
+        }catch (Exception e){
 
         }
 
@@ -478,5 +562,29 @@ public class MainActivity extends AppCompatActivity {
         System.out.println(text);
 
         return text;
+    }
+
+
+    //초미세먼지, 습도
+    // 네트워크 작업은 AsyncTask 를 사용해야 한다
+    public class OtherConnection extends AsyncTask<String, String, String>{
+
+        // 백그라운드에서 작업하게 한다
+        @Override
+        protected String doInBackground(String... params) {
+
+            String path = "https://search.naver.com/search.naver?sm=top_hty&fbm=0&ie=utf8&query=%EC%8A%B5%EB%8F%84";
+            // Jsoup을 이용한 날씨데이터 Pasing하기.
+            try{
+                Document document = Jsoup.connect(path).get();
+                String text= getParsing(document, "dl[class=indicator]",0)+"data"+getParsing(document, "div[class=info_list humidity _tabContent] ul li[class=on] dl dd[class=weather_item _dotWrapper]",0);
+
+                return text;
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+            return null;
+        }
+
     }
 }
